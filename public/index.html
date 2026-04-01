@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IdeaForge - AI 多角色项目分析</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="header">
+      <h1>IdeaForge</h1>
+      <p class="subtitle">多角色 AI 协作，打磨你的项目 Idea</p>
+      <button class="header-btn" onclick="openSettings()" title="设置">&#9881;</button>
+    </header>
+
+    <!-- Idea Input -->
+    <div class="idea-section" id="ideaSection">
+      <textarea id="ideaInput" placeholder="描述你的项目 Idea...&#10;&#10;例如：一个帮助独立开发者快速验证 SaaS 想法的工具，通过 AI 分析市场、技术可行性和商业模式..." rows="4"></textarea>
+      <button class="btn-primary btn-start" onclick="startSession()">开始分析</button>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="workspace" id="workspace" style="display:none;">
+      <div class="idea-display">
+        <strong>项目 Idea：</strong><span id="ideaDisplay"></span>
+        <button class="btn-small" onclick="resetSession()">重新开始</button>
+      </div>
+
+      <!-- Role Buttons -->
+      <div class="role-bar">
+        <div class="role-buttons" id="roleButtons"></div>
+        <button class="btn-export" onclick="generateSummary()">&#128196; 生成项目文档</button>
+      </div>
+
+      <!-- Discussion -->
+      <div class="discussion" id="discussion"></div>
+
+      <!-- User Input -->
+      <div class="user-input-bar">
+        <textarea id="userInput" placeholder="插话参与讨论..." rows="1" onkeydown="handleInputKey(event)"></textarea>
+        <button onclick="sendUserMessage()">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Settings Modal ═══ -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>设置</h2>
+        <button class="modal-close" onclick="closeSettings()">&times;</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="tab-global" onclick="switchTab(this)">全局配置</button>
+        <button class="tab" data-tab="tab-roles" onclick="switchTab(this)">角色管理</button>
+      </div>
+
+      <!-- Tab: Global Config -->
+      <div class="tab-content active" id="tab-global">
+        <div class="form-group">
+          <label>API 协议</label>
+          <select id="globalProvider">
+            <option value="openai">OpenAI 兼容（大多数中转站）</option>
+            <option value="anthropic">Anthropic 原生</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>API Base URL</label>
+          <input type="text" id="globalBaseUrl" placeholder="例如 https://api.openai.com/v1" />
+          <p class="hint">留空则使用默认地址</p>
+        </div>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="globalApiKey" placeholder="sk-..." />
+        </div>
+        <div class="form-group">
+          <label>默认模型</label>
+          <input type="text" id="globalModel" placeholder="例如 gpt-4o / claude-sonnet-4-20250514" />
+        </div>
+        <button class="btn-primary" onclick="saveGlobalSettings()">保存全局配置</button>
+      </div>
+
+      <!-- Tab: Role Management -->
+      <div class="tab-content" id="tab-roles">
+        <div class="role-list" id="roleList"></div>
+        <button class="btn-add-role" onclick="openRoleEditor()">+ 添加新角色</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Role Editor Modal ═══ -->
+  <div class="modal-overlay" id="roleEditorModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="roleEditorTitle">添加角色</h2>
+        <button class="modal-close" onclick="closeRoleEditor()">&times;</button>
+      </div>
+
+      <div class="form-group">
+        <label>角色名称</label>
+        <input type="text" id="roleEditName" placeholder="例如：安全专家" />
+      </div>
+      <div class="form-group">
+        <label>Emoji 图标</label>
+        <input type="text" id="roleEditEmoji" placeholder="例如：🛡️" maxlength="4" />
+      </div>
+      <div class="form-group">
+        <label>System Prompt（角色设定）</label>
+        <textarea id="roleEditPrompt" rows="6" placeholder="描述这个角色的职责和分析方向..."></textarea>
+      </div>
+
+      <details class="role-override-section">
+        <summary>独立 API 配置（可选，留空则用全局配置）</summary>
+        <div class="form-group">
+          <label>API 协议</label>
+          <select id="roleEditProvider">
+            <option value="">跟随全局</option>
+            <option value="openai">OpenAI 兼容</option>
+            <option value="anthropic">Anthropic 原生</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>API Base URL</label>
+          <input type="text" id="roleEditBaseUrl" placeholder="留空则用全局" />
+        </div>
+        <div class="form-group">
+          <label>API Key</label>
+          <input type="password" id="roleEditApiKey" placeholder="留空则用全局" />
+        </div>
+        <div class="form-group">
+          <label>模型</label>
+          <input type="text" id="roleEditModel" placeholder="留空则用全局" />
+        </div>
+      </details>
+
+      <div class="form-actions">
+        <button class="btn-primary" onclick="saveRole()">保存</button>
+        <button class="btn-secondary" onclick="closeRoleEditor()">取消</button>
+      </div>
+
+      <input type="hidden" id="roleEditId" />
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
